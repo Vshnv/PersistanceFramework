@@ -11,4 +11,5 @@ public interface Repository<K, V extends Persistable<K>> {
     void insert(@NotNull V value,@NotNull Function0 onInsert);
     void delete( @NotNull K key);
     void update( @NotNull V value);
+
 }

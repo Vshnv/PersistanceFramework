@@ -55,4 +55,10 @@ class SQLConnector constructor(driver: SQLDriver, databaseName: String, hostname
             }
         }
     }
+
+    override fun connectSync(operations: (Connection) -> Unit) {
+        dataSource.connection.use {
+            operations(it)
+        }
+    }
 }

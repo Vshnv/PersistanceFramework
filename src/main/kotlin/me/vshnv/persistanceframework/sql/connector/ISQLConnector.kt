@@ -5,4 +5,5 @@ import java.util.function.Consumer
 
 interface ISQLConnector {
     fun connect(operations: suspend (Connection) -> Unit)
+    fun connectSync(operations: (Connection) -> Unit)
 }

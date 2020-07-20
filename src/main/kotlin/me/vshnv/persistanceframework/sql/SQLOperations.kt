@@ -1,8 +1,9 @@
 package me.vshnv.persistanceframework.sql
 
 import me.vshnv.persistanceframework.*
-import me.vshnv.persistanceframework.field.FieldFetcher
-import me.vshnv.persistanceframework.field.PersistentData
+import me.vshnv.persistanceframework.reflection.FieldFetcher
+import me.vshnv.persistanceframework.reflection.ObjectMapper
+import me.vshnv.persistanceframework.reflection.PersistentData
 import me.vshnv.persistanceframework.sql.connector.ISQLConnector
 import java.lang.reflect.Field
 import java.sql.Connection
@@ -38,11 +39,13 @@ class SQLInserter<K, V>(private val table: String, private val connector: ISQLCo
         connector.connect { conn->
             val statement = data.prepareInsertStatement(conn, table)
             conn.autoCommit = false
-            values.forEach {value ->
+            values.forEachIndexed {outerIndex, value ->
                 fields.forEachIndexed { fIndex, field ->
                     statement.setVariable(fIndex + 1, field, value) //+1 since prepared statement index starts at 1
                 }
-                statement.addBatch()
+                if (outerIndex < values.size - 1) {
+                    statement.addBatch()
+                }
             }
             statement.executeUpdate()
             conn.commit()
@@ -59,16 +62,17 @@ class SQLInserter<K, V>(private val table: String, private val connector: ISQLCo
 
 class SQLFetcher<K, V>(private val table: String, private val connector: ISQLConnector, private val keyClass: Class<K>, private val valueClass: Class<V>) : Fetcher<K, V>() where V: Persistable<K> {
 
-    override fun fetch(key: K, onFetch: (V?) -> Unit) {
+    override fun fetch(key: K, onFetch: (V) -> Unit) {
         val data: PersistentData = FieldFetcher[valueClass] ?: return;
         connector.connect {conn ->
             val stmt = data.prepareSelectStatement(conn, table);
-            stmt.setString(1, key.toString())
+            stmt.setString(1, key.toJSON())
             val result = stmt.executeQuery()
             if (result.next()) {
-
+                val mapper = ObjectMapper(result.toMap(), valueClass)
+                onFetch(mapper.mapToObject())
             }else {
-                onFetch(null)
+
             }
         }
     }
@@ -80,7 +84,7 @@ class SQLDeleter<K, V>(private val table: String, private val connector: ISQLCon
         val data: PersistentData = FieldFetcher[valueClass] ?: return
         connector.connect {conn->
             val stmt = data.prepareDeleteStatement(conn, table)
-            stmt.setString(1, key.toString())
+            stmt.setString(1, key.toJSON())
             stmt.executeUpdate()
             onDelete()
         }
@@ -96,34 +100,34 @@ class SQLDeleter<K, V>(private val table: String, private val connector: ISQLCon
 //Local utility extensions
 
 private fun PersistentData.prepareInsertStatement(conn: Connection, table: String): PreparedStatement {
-    val columns = fields.joinToString( separator = "," , transform = {it.getPersistentName()})
+    val columns = fields.joinToString( separator = "," , transform = {it.persistantName})
     val placeholders = CharArray(fields.size) { i -> '?'}.joinToString(separator=",");
-    val query = "INSERT INTO $table ($columns) ($placeholders)"
+    val query = "INSERT INTO $table ($columns) VALUES ($placeholders) ON DUPLICATE KEY UPDATE ${key.persistantName}=${key.persistantName}"
     return conn.prepareStatement(query)
 }
 
 private fun PersistentData.prepareSelectStatement(conn: Connection, table: String): PreparedStatement {
-    val columns = fields.joinToString( separator = "," , transform = {it.getPersistentName()})
-    val query = "SELECT $columns FROM $table LIMIT 0, 1 WHERE ${this.key}=?"
+    val columns = fields.joinToString( separator = "," , transform = {it.persistantName})
+    val query = "SELECT $columns FROM $table WHERE ${this.key.persistantName}=? LIMIT 0, 1"
     return conn.prepareStatement(query)
 }
 
 private fun PersistentData.prepareUpdateStatement(conn: Connection, table: String): PreparedStatement {
-    val keyValPairs = fields.joinToString( separator = "," , transform = {"${it.getPersistentName()}=?"})
-    val keyName = key.getPersistentName()
+    val keyValPairs = fields.joinToString( separator = "," , transform = {"${it.persistantName}=?"})
+    val keyName = key.persistantName
     val query = "UPDATE $table SET $keyValPairs WHERE $keyName=?"
     return conn.prepareStatement(query)
 }
 
 private fun PersistentData.prepareDeleteStatement(conn: Connection, table: String): PreparedStatement {
-    val keyName = key.getPersistentName()
+    val keyName = key.persistantName
     val query = "DELETE FROM $table WHERE $keyName=?"
     return conn.prepareStatement(query)
 }
 
 private fun <T> PreparedStatement.setVariable(index: Int, field: Field, instance: T) {
     val type = field.type
-
+    field.isAccessible = true
 
     if (type.interfaces.contains(Persistable::class.java)) {
         val foreignKey = FieldFetcher[type]?.key?.get(instance) ?: throw IllegalArgumentException("Unregistered Persistable Class: $type")

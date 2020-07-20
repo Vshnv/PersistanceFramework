@@ -34,4 +34,10 @@ class SQLiteConnector(folder: File, dbName: String): ISQLConnector {
         }
     }
 
+    override fun connectSync(operations: (Connection) -> Unit) {
+        DriverManager.getConnection(jdbcUrl).use {
+            operations(it)
+        }
+    }
+
 }

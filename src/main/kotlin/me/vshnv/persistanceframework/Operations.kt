@@ -36,7 +36,7 @@ abstract class Inserter<K, V>() where V: Persistable<K> {
 
 
 abstract class Fetcher<K, V>() where V: Persistable<K> {
-    abstract fun fetch(key: K, onFetch: (V?) -> Unit)
+    abstract fun fetch(key: K, onFetch: (V) -> Unit)
 }
 
 abstract class Deleter<K, V>() where V: Persistable<K> {

@@ -2,7 +2,9 @@ package me.vshnv.persistanceframework;
 
 
 import me.vshnv.persistanceframework.sql.ConnectorDriverNotFoundException;
+import me.vshnv.persistanceframework.sql.SQLDriver;
 import me.vshnv.persistanceframework.sql.SQLRepository;
+import me.vshnv.persistanceframework.sql.connector.SQLConnector;
 import me.vshnv.persistanceframework.sql.connector.SQLiteConnector;
 
 import java.io.File;
@@ -13,10 +15,23 @@ import java.util.UUID;
 
 public class test {
     public static void main(String[] args) throws ConnectorDriverNotFoundException, SQLException, InterruptedException {
-        SQLiteConnector connector = new SQLiteConnector(new File("myFolder"), "test");
+        SQLConnector connector = new SQLConnector(SQLDriver.MYSQL, "wildmines", "localhost", "3306", "root", "19BCG10015");
         Repository<UUID, TestData> persistentRepo = new SQLRepository(UUID.class, TestData.class, connector, "TestTable");
-        persistentRepo.with(UUID.randomUUID(), (data)-> {
-
+        UUID id = UUID.nameUUIDFromBytes("SIMON".getBytes());
+        TestData personA = new TestData(id,"Simon", 30, true);
+        persistentRepo.insert(personA, ()-> {
+            System.out.print("Inserted");
+            return null;
         });
+        Thread.sleep(5000);
+
+
+        persistentRepo.with(id, person -> {
+            System.out.println(person.getName());
+            System.out.println(person.getAge());
+            System.out.println(person.isStudent());
+        });
+
+        Thread.sleep(5000);
     }
 }
