@@ -37,11 +37,15 @@ persistentRepo.insert(personA, ()-> {
     System.out.print("Inserted");
 });
 
-persistentRepo.with(id, person -> {
-    System.out.println(person.getName());
-    System.out.println(person.getAge());
-    System.out.println(person.isStudent());
-});
+
+
+public void onInsert(UUID id, Repository<UUID, TestData> repo) {
+    repo.with(id, person -> {
+        System.out.println(person.getName());
+        System.out.println(person.getAge());
+        System.out.println(person.isStudent());
+    });
+}
 ```
 
 The TestData class used above:
