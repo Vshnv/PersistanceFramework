@@ -17,13 +17,16 @@ fun main() = runBlocking {
     val id = UUID.nameUUIDFromBytes("SIMON".toByteArray())
     val personA = TestData(id, "Simon", 30, true)
 
+    fun onInsert() {
+        persistentRepo.with(id) { person ->
+            println(person.name)
+            println(person.age)
+            println(person.isStudent)
+        }
+    }
 
     persistentRepo.insert(personA) {
         print("Inserted")
-    }
-    persistentRepo.with(id) { person->
-        println(person.name)
-        println(person.age)
-        println(person.isStudent)
+        onInsert();
     }
 }

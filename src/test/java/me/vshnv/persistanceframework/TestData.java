@@ -20,7 +20,7 @@ public class TestData implements Persistable<UUID> {
 
     @Override
     public void init(UUID uuid) {
-
+        System.out.println("Loaded data with UUID " + uuid.toString());
     }
 
     public String getName() {
