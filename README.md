@@ -1,5 +1,5 @@
 # PersistanceFramework
-A framework for easier integration with databases for anyone.
+A framework for easier integration with databases.
 
 
 PF is the simple solution to replacing a lot of unneccessary JDBC usage.
