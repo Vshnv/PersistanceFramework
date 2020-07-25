@@ -35,6 +35,7 @@ TestData personA = new TestData(id,"Simon", 30, true);
 
 persistentRepo.insert(personA, ()-> {
     System.out.print("Inserted");
+    onInsert(id, persistentRepo);
 });
 
 
